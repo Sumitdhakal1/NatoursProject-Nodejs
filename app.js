@@ -2,17 +2,32 @@ const express = require('express');
 
 const app = express();
 
-const fs = require('fs')
+const fs = require('fs');
+
+const morgan = require('morgan')
 
 app.use(express.json()); //express.json is middelware
+
+// first middelware
+app.use((req, res, next)=>{
+    console.log('hello from the middelware😤');
+    next();
+});
+
+app.use((req, res, next)=>{
+    req.requestTime = new Date().toISOString();
+    next();
+}); 
 
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`));
 
 
+// routes
 const getAllTours = (req, res) => {
-
+     console.log(req.requestTime)
     res.status(200).json({
         status: 'success',
+        requestDate:req.requestTime,
         results: tours.length,
         data: {
             tours
@@ -36,7 +51,8 @@ const getTour = (req, res) => {
     res.status(200).json({
         status: 'success',
         data: {
-            tour
+            tour,
+            requestDate:req.requestDate,
         }
     });
 }
@@ -98,6 +114,9 @@ const deleteTour = (req, res) => {
 app.route('/api/v1/tours').get(getAllTours).post(createTour)
 app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour)
 
+
+
+//start server
 const port = 3000
 app.listen(port, () => {
     console.log(`App is running on ${port}...`)
