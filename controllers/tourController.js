@@ -13,16 +13,47 @@ exports.getAllTours =async (req, res) => {
 
         excludeFields.forEach(el =>delete queryObject[el])
 
-         //advance filtering
+         //1)advance filtering
          let queryStr = JSON.stringify(queryObject);
         queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match =>`$${match}`)
          console.log(JSON.parse(queryStr))
          //{difficulty: 'easy', duration:{$gte: 5}}
          //{difficulty: 'easy', duration:{gte: '5'}}
           
-         const query= Tour.find(JSON.parse(queryStr))
+         let query= Tour.find(JSON.parse(queryStr))
         // const query= Tour.find(queryObject)
+        
+        //2) sorting
+        if(req.query.sort){
+            const sortBy= req.query.sort.split(',').join('')
+              query = query.sort(sortBy)
+        }else{
+            query= query.sort('-createdAt')
+        }
+          
 
+        //3) field limiting
+           if(req.query.fields){
+            const fields=req.query.fields.split(',').join(' '); 
+            query=query.select(fields)
+            console.log(req.query.fields)
+           }else{
+            query= query.select('-__v')
+           }
+          
+
+           //4)pagination
+           const page = req.query.page * 1 || 1; //default value is 1 of right side
+           const limit =req.query.limit * 1 || 100;
+           const skip = (page -1) * limit;
+           
+          query = query.skip(skip).limit(limit);
+           
+
+          if(req.query.page){
+            const numTours = await Tour.countDocuments();
+            if(skip >= numTours) throw new Error('this page doesnot exists ')
+          }
         const tours = await query
          
         //send response
